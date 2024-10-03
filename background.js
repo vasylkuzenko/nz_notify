@@ -36,23 +36,30 @@ function sendTelegramMessage(message, settings) {
     .catch((error) => console.error("Помилка при виконанні запиту:", error));
 }
 
-function CreateNewsTab() {
-  chrome.tabs.create(
-    { url: NZ_NEWS_URL, active: false, index: 0 },
-    (newTab) => {
-      waitForTabLoad(newTab.id);
+function CreateNewsWindow() {
+  chrome.windows.create(
+    {
+      url: NZ_NEWS_URL,
+      type: "popup", 
+      focused: false, 
+      width: 400, 
+      height: 600,
+    },
+    (newWindow) => {
+      const activeTab = newWindow.tabs[0]; 
+      waitForTabLoad(activeTab.id, newWindow.id);
     }
   );
 }
 
-function waitForTabLoad(tabId) {
+function waitForTabLoad(tabId, windowId) {
   chrome.tabs.onUpdated.addListener(function listener(
     tabIdUpdated,
     changeInfo
   ) {
     if (tabId === tabIdUpdated && changeInfo.status === "complete") {
       chrome.tabs.onUpdated.removeListener(listener);
-      checkNewsOnTab(tabId);
+      checkNewsOnTab(tabId, windowId);
     }
   });
 }
@@ -64,8 +71,11 @@ function delay(ms) {
 async function sendNotificationsWithDelay(newNews, settings) {
   newNews.reverse();
 
+  const chromeNotificationsEnabled =
+    settings.enableChromeNotifications !== false;
+
   for (const newsItem of newNews) {
-    if (settings.enableChromeNotifications) {
+    if (chromeNotificationsEnabled) {
       chrome.notifications.create(
         {
           type: "basic",
@@ -87,7 +97,7 @@ async function sendNotificationsWithDelay(newNews, settings) {
   }
 }
 
-function checkNewsOnTab(tabId) {
+function checkNewsOnTab(tabId, windowId) {
   chrome.scripting.executeScript(
     {
       target: { tabId: tabId },
@@ -135,7 +145,7 @@ function checkNewsOnTab(tabId) {
             settings
           );
         });
-        chrome.tabs.remove(tabId);
+        chrome.windows.remove(windowId);
         return;
       }
 
@@ -158,7 +168,7 @@ function checkNewsOnTab(tabId) {
               "Користувач не авторизований. Будь ласка, увійдіть у систему.",
               settings
             );
-            chrome.tabs.remove(tabId);
+            chrome.windows.remove(windowId); 
             return;
           }
 
@@ -178,7 +188,7 @@ function checkNewsOnTab(tabId) {
               "Блок з новинами не знайдено на сторінці.",
               settings
             );
-            chrome.tabs.remove(tabId);
+            chrome.windows.remove(windowId); 
             return;
           }
 
@@ -193,7 +203,7 @@ function checkNewsOnTab(tabId) {
               "Виникла проблема під час отримання даних зі сторінки.",
               settings
             );
-            chrome.tabs.remove(tabId);
+            chrome.windows.remove(windowId); 
             return;
           }
 
@@ -211,19 +221,8 @@ function checkNewsOnTab(tabId) {
               sendNotificationsWithDelay(newNews, settings);
 
               chrome.storage.local.set({ [SAVED_NEWS_KEY]: currentNews });
-
-              chrome.storage.local.get(["keepTabOpen"], (data) => {
-                const keepTabOpen = data.keepTabOpen || false;
-
-                if (keepTabOpen) {
-                  chrome.tabs.update(tabId, { active: true });
-                } else {
-                  chrome.tabs.remove(tabId);
-                }
-              });
-            } else {
-              chrome.tabs.remove(tabId);
             }
+            chrome.windows.remove(windowId); 
           });
         });
       } else {
@@ -244,7 +243,7 @@ function checkNewsOnTab(tabId) {
             settings
           );
         });
-        chrome.tabs.remove(tabId);
+        chrome.windows.remove(windowId); 
       }
     }
   );
@@ -268,12 +267,11 @@ function startNewsCheckCycle() {
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "newsCheck") {
-    CreateNewsTab();
+    CreateNewsWindow();
   }
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-  CreateNewsTab();
-
+  CreateNewsWindow();
   startNewsCheckCycle();
 });
