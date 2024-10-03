@@ -1,4 +1,5 @@
 const SAVED_NEWS_KEY = "savedNZNews";
+const NZ_NEWS_URL = "https://nz.ua/dashboard/news";
 
 let notificationMapping = {};
 
@@ -36,12 +37,12 @@ function sendTelegramMessage(message, settings) {
 }
 
 function CreateNewsTab() {
-  chrome.storage.local.get(["NEWS_URL_OPEN"], (data) => {
-    const url = data.NEWS_URL_OPEN || "https://nz.ua/dashboard/news";
-    chrome.tabs.create({ url: url, active: false, index: 0 }, (newTab) => {
+  chrome.tabs.create(
+    { url: NZ_NEWS_URL, active: false, index: 0 },
+    (newTab) => {
       waitForTabLoad(newTab.id);
-    });
-  });
+    }
+  );
 }
 
 function waitForTabLoad(tabId) {
@@ -73,12 +74,12 @@ async function sendNotificationsWithDelay(newNews, settings) {
           message: newsItem.text,
         },
         (id) => {
-          notificationMapping[id] = `${NEWS_URL_OPEN}`;
+          notificationMapping[id] = NZ_NEWS_URL;
         }
       );
     }
     sendTelegramMessage(
-      `📚 ${newsItem.date}\n${newsItem.text}\n${NEWS_URL_OPEN}`,
+      `📚 ${newsItem.date}\n${newsItem.text}\n${NZ_NEWS_URL}`,
       settings
     );
 
@@ -150,8 +151,7 @@ function checkNewsOnTab(tabId) {
                 message: "Ви не авторизовані. Будь ласка, увійдіть в систему.",
               },
               (id) => {
-                notificationMapping[id] =
-                  settings.NEWS_URL_OPEN || "https://nz.ua/dashboard/news";
+                notificationMapping[id] = NZ_NEWS_URL;
               }
             );
             sendTelegramMessage(
@@ -171,8 +171,7 @@ function checkNewsOnTab(tabId) {
                 message: "Блок з новинами не знайдено на сторінці.",
               },
               (id) => {
-                notificationMapping[id] =
-                  settings.NEWS_URL_OPEN || "https://nz.ua/dashboard/news";
+                notificationMapping[id] = NZ_NEWS_URL;
               }
             );
             sendTelegramMessage(
@@ -237,8 +236,7 @@ function checkNewsOnTab(tabId) {
               message: "Блок з новинами не знайдено на сторінці.",
             },
             (id) => {
-              notificationMapping[id] =
-                settings.NEWS_URL_OPEN || "https://nz.ua/dashboard/news";
+              notificationMapping[id] = NZ_NEWS_URL;
             }
           );
           sendTelegramMessage(
@@ -253,15 +251,10 @@ function checkNewsOnTab(tabId) {
 }
 
 chrome.notifications.onClicked.addListener((id) => {
-  chrome.storage.local.get(["NEWS_URL_OPEN"], (data) => {
-    const urlToOpen =
-      notificationMapping[id] ||
-      data.NEWS_URL_OPEN ||
-      "https://nz.ua/dashboard/news";
-    if (urlToOpen) {
-      chrome.tabs.create({ url: urlToOpen });
-    }
-  });
+  const urlToOpen = notificationMapping[id] || NZ_NEWS_URL;
+  if (urlToOpen) {
+    chrome.tabs.create({ url: urlToOpen });
+  }
 });
 
 function startNewsCheckCycle() {
