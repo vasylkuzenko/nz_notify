@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NZ Notify</title>
+    <style>
+      body {
+        font-family: "Open Sans", sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f5f5f5;
+        color: #333;
+        width: 220px;
+      }
+
+      .header {
+        background: radial-gradient(
+            44.37% 134.28% at 103.79% 132.01%,
+            rgba(4, 198, 93, 0.5) 0%,
+            rgba(4, 198, 93, 0) 100%
+          ),
+          radial-gradient(
+            51.52% 197.3% at -15.5% -46.34%,
+            rgba(255, 140, 140, 0.8) 8.33%,
+            rgba(164, 164, 255, 0) 100%
+          ),
+          linear-gradient(81.13deg, #1a76ff -22.71%, #ffea96 101.06%);
+        color: #090e36;
+        padding: 10px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+      }
+
+      .content {
+        padding: 15px;
+        text-align: center;
+        padding-bottom: 30px;
+      }
+
+      .content p {
+        font-size: 14px;
+        margin: 10px 0;
+      }
+
+      a.btn {
+        background-color: #000;
+        border: 1px solid #000;
+        border-radius: 40px;
+        text-decoration: none;
+        outline: none;
+        cursor: pointer;
+        color: #fff;
+        transition: all 0.3s;
+        padding: 8px 28px;
+        font-size: 13px;
+        line-height: 24px;
+        outline: none;
+      }
+
+      a.btn:hover {
+        background-color: #fff;
+        color: #090e36;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">NZ Notify</div>
+    <div class="content">
+      <p>Слідкуйте за оновленнями на сайті <a target="_blank" href="https://nz.ua">nz.ua</a></p>
+      <a class="btn" href="#" id="openSettings">Налаштування</a>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

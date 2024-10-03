@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "NZ Notify",
+  "version": "1.0",
+  "description": "NZ Notify сповіщає про оновлення (оцінки, ДЗ, новини) на сайті nz.ua. Працює через сповіщення в браузері або телеграм-бот.",
+  "author": "Vasyl Kuzenko",
+  "permissions": ["tabs", "scripting", "notifications", "alarms", "storage"],
+  "host_permissions": ["https://nz.ua/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "icons": {
+    "48": "icon.png"
+  }
+}
