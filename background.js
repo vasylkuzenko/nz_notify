@@ -40,13 +40,13 @@ function CreateNewsWindow() {
   chrome.windows.create(
     {
       url: NZ_NEWS_URL,
-      type: "popup", 
-      focused: false, 
-      width: 400, 
+      type: "popup",
+      focused: false,
+      width: 400,
       height: 600,
     },
     (newWindow) => {
-      const activeTab = newWindow.tabs[0]; 
+      const activeTab = newWindow.tabs[0];
       waitForTabLoad(activeTab.id, newWindow.id);
     }
   );
@@ -139,12 +139,6 @@ function checkNewsOnTab(tabId, windowId) {
           message:
             "Не вдалося підключитися до сервера NZ.ua або виникли проблеми з інтернетом.",
         });
-        chrome.storage.local.get(null, (settings) => {
-          sendTelegramMessage(
-            "Не вдалося підключитися до сервера NZ.ua або виникли проблеми з інтернетом.",
-            settings
-          );
-        });
         chrome.windows.remove(windowId);
         return;
       }
@@ -164,11 +158,7 @@ function checkNewsOnTab(tabId, windowId) {
                 notificationMapping[id] = NZ_NEWS_URL;
               }
             );
-            sendTelegramMessage(
-              "Користувач не авторизований. Будь ласка, увійдіть у систему.",
-              settings
-            );
-            chrome.windows.remove(windowId); 
+            chrome.windows.remove(windowId);
             return;
           }
 
@@ -184,11 +174,8 @@ function checkNewsOnTab(tabId, windowId) {
                 notificationMapping[id] = NZ_NEWS_URL;
               }
             );
-            sendTelegramMessage(
-              "Блок з новинами не знайдено на сторінці.",
-              settings
-            );
-            chrome.windows.remove(windowId); 
+
+            chrome.windows.remove(windowId);
             return;
           }
 
@@ -199,11 +186,8 @@ function checkNewsOnTab(tabId, windowId) {
               title: "Помилка отримання даних",
               message: "Виникла проблема під час отримання даних зі сторінки.",
             });
-            sendTelegramMessage(
-              "Виникла проблема під час отримання даних зі сторінки.",
-              settings
-            );
-            chrome.windows.remove(windowId); 
+
+            chrome.windows.remove(windowId);
             return;
           }
 
@@ -222,7 +206,7 @@ function checkNewsOnTab(tabId, windowId) {
 
               chrome.storage.local.set({ [SAVED_NEWS_KEY]: currentNews });
             }
-            chrome.windows.remove(windowId); 
+            chrome.windows.remove(windowId);
           });
         });
       } else {
@@ -238,12 +222,8 @@ function checkNewsOnTab(tabId, windowId) {
               notificationMapping[id] = NZ_NEWS_URL;
             }
           );
-          sendTelegramMessage(
-            "Помилка перевірки новин: блок з новинами не знайдено.",
-            settings
-          );
         });
-        chrome.windows.remove(windowId); 
+        chrome.windows.remove(windowId);
       }
     }
   );
