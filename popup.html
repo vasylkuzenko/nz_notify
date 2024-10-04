@@ -36,7 +36,7 @@
       .content {
         padding: 15px;
         text-align: center;
-        padding-bottom: 30px;
+        padding-bottom: 20px;
       }
 
       .content p {
@@ -59,16 +59,54 @@
         outline: none;
       }
 
+      .menu {
+        padding-bottom: 20px;
+      }
+
       a.btn:hover {
         background-color: #fff;
         color: #090e36;
+      }
+
+      .menu a {
+        display: block;
+        color: #262626;
+        transition: all 0.3s;
+        line-height: 30px;
+        text-align: center;
+        border-bottom: 1px solid #dfdfdf;
+        text-decoration: none;
+        font-size: 16px;
+      }
+
+      .menu a:last-child {
+        border: 0;
+      }
+
+      .menu a:hover {
+        color: #262626;
+        text-decoration: none;
+        background-color: #dfdfdf;
       }
     </style>
   </head>
   <body>
     <div class="header">NZ Notify</div>
     <div class="content">
-      <p>Слідкуйте за оновленнями на сайті <a target="_blank" href="https://nz.ua">nz.ua</a></p>
+      <div class="menu">
+        <a target="_blank" href="https://nz.ua/dashboard/news">Новини</a>
+        <a target="_blank" href="https://nz.ua/schedule/diary">Щоденник</a>
+        <a target="_blank" href="https://nz.ua/schedule/index">Розклад</a>
+        <a target="_blank" href="https://nz.ua/messages/index">Повідомлення</a>
+        <a target="_blank" href="https://nz.ua/schedule/grades-statement"
+          >Виписка оцінок</a
+        >
+        <a
+          target="_blank"
+          href="https://lib.imzo.gov.ua/yelektronn-vers-pdruchnikv/"
+          >Підручники</a
+        >
+      </div>
       <a class="btn" href="#" id="openSettings">Налаштування</a>
     </div>
 
