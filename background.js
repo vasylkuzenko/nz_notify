@@ -36,14 +36,40 @@ function sendTelegramMessage(message, settings) {
     .catch((error) => console.error("Помилка при виконанні запиту:", error));
 }
 
+function closeTabOrWindow(tabId, windowId) {
+  if (windowId) {
+    chrome.windows.remove(windowId);
+  } else {
+    chrome.tabs.remove(tabId);
+  }
+}
+
+function openNews() {
+  chrome.windows.getCurrent({}, (window) => {
+    if (window.state === "fullscreen") {
+      CreateNewsTab();
+    } else {
+      CreateNewsWindow();
+    }
+  });
+}
+
+function CreateNewsTab() {
+  chrome.tabs.create({ url: NZ_NEWS_URL, active: false }, (newTab) => {
+    waitForTabLoad(newTab.id);
+  });
+}
+
 function CreateNewsWindow() {
   chrome.windows.create(
     {
       url: NZ_NEWS_URL,
       type: "popup",
       focused: false,
-      width: 400,
-      height: 600,
+      width: 1,
+      height: 1,
+      left: -10000,
+      top: -10000,
     },
     (newWindow) => {
       const activeTab = newWindow.tabs[0];
@@ -139,7 +165,7 @@ function checkNewsOnTab(tabId, windowId) {
           message:
             "Не вдалося підключитися до сервера NZ.ua або виникли проблеми з інтернетом.",
         });
-        chrome.windows.remove(windowId);
+        closeTabOrWindow(tabId, windowId);
         return;
       }
 
@@ -158,7 +184,7 @@ function checkNewsOnTab(tabId, windowId) {
                 notificationMapping[id] = NZ_NEWS_URL;
               }
             );
-            chrome.windows.remove(windowId);
+            closeTabOrWindow(tabId, windowId);
             return;
           }
 
@@ -175,7 +201,7 @@ function checkNewsOnTab(tabId, windowId) {
               }
             );
 
-            chrome.windows.remove(windowId);
+            closeTabOrWindow(tabId, windowId);
             return;
           }
 
@@ -187,7 +213,7 @@ function checkNewsOnTab(tabId, windowId) {
               message: "Виникла проблема під час отримання даних зі сторінки.",
             });
 
-            chrome.windows.remove(windowId);
+            closeTabOrWindow(tabId, windowId);
             return;
           }
 
@@ -206,7 +232,7 @@ function checkNewsOnTab(tabId, windowId) {
 
               chrome.storage.local.set({ [SAVED_NEWS_KEY]: currentNews });
             }
-            chrome.windows.remove(windowId);
+            closeTabOrWindow(tabId, windowId);
           });
         });
       } else {
@@ -223,7 +249,7 @@ function checkNewsOnTab(tabId, windowId) {
             }
           );
         });
-        chrome.windows.remove(windowId);
+        closeTabOrWindow(tabId, windowId);
       }
     }
   );
@@ -247,11 +273,11 @@ function startNewsCheckCycle() {
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "newsCheck") {
-    CreateNewsWindow();
+    openNews();
   }
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-  CreateNewsWindow();
+  openNews();
   startNewsCheckCycle();
 });
