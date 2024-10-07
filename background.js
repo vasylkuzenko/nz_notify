@@ -84,10 +84,8 @@ function openWindow(url, handler) {
       url: url,
       type: "popup",
       focused: false,
-      width: 1,
-      height: 1,
-      left: -10000,
-      top: -10000,
+      width: 200,
+      height: 150
     },
     (newWindow) => {
       const activeTab = newWindow.tabs[0];
