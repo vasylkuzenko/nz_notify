@@ -44,26 +44,34 @@ function closeTabOrWindow(tabId, windowId) {
   }
 }
 
-function openNews() {
+function openPage(url, handler) {
   chrome.windows.getCurrent({}, (window) => {
     if (window.state === "fullscreen") {
-      CreateNewsTab();
+      openTab(url, handler);
     } else {
-      CreateNewsWindow();
+      openWindow(url, handler);
     }
   });
 }
 
-function CreateNewsTab() {
-  chrome.tabs.create({ url: NZ_NEWS_URL, active: false }, (newTab) => {
-    waitForTabLoad(newTab.id);
+function openTab(url, handler) {
+  chrome.tabs.create({ url: url, active: false }, (newTab) => {
+    chrome.tabs.onUpdated.addListener(function listener(
+      tabIdUpdated,
+      changeInfo
+    ) {
+      if (newTab.id === tabIdUpdated && changeInfo.status === "complete") {
+        chrome.tabs.onUpdated.removeListener(listener);
+        handler(newTab.id);
+      }
+    });
   });
 }
 
-function CreateNewsWindow() {
+function openWindow(url, handler) {
   chrome.windows.create(
     {
-      url: NZ_NEWS_URL,
+      url: url,
       type: "popup",
       focused: false,
       width: 1,
@@ -73,21 +81,17 @@ function CreateNewsWindow() {
     },
     (newWindow) => {
       const activeTab = newWindow.tabs[0];
-      waitForTabLoad(activeTab.id, newWindow.id);
+      chrome.tabs.onUpdated.addListener(function listener(
+        tabIdUpdated,
+        changeInfo
+      ) {
+        if (activeTab.id === tabIdUpdated && changeInfo.status === "complete") {
+          chrome.tabs.onUpdated.removeListener(listener);
+          handler(activeTab.id, newWindow.id);
+        }
+      });
     }
   );
-}
-
-function waitForTabLoad(tabId, windowId) {
-  chrome.tabs.onUpdated.addListener(function listener(
-    tabIdUpdated,
-    changeInfo
-  ) {
-    if (tabId === tabIdUpdated && changeInfo.status === "complete") {
-      chrome.tabs.onUpdated.removeListener(listener);
-      checkNewsOnTab(tabId, windowId);
-    }
-  });
 }
 
 function delay(ms) {
@@ -123,7 +127,7 @@ async function sendNotificationsWithDelay(newNews, settings) {
   }
 }
 
-function checkNewsOnTab(tabId, windowId) {
+function handleNewsPage(tabId, windowId = null) {
   chrome.scripting.executeScript(
     {
       target: { tabId: tabId },
@@ -273,11 +277,11 @@ function startNewsCheckCycle() {
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "newsCheck") {
-    openNews();
+    openPage(NZ_NEWS_URL, handleNewsPage);
   }
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-  openNews();
+  openPage(NZ_NEWS_URL, handleNewsPage);
   startNewsCheckCycle();
 });
