@@ -85,7 +85,7 @@ function openWindow(url, handler) {
       type: "popup",
       focused: false,
       width: 200,
-      height: 150
+      height: 150,
     },
     (newWindow) => {
       const activeTab = newWindow.tabs[0];
@@ -100,44 +100,6 @@ function openWindow(url, handler) {
       });
     }
   );
-}
-
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function sendNotificationsWithDelay(newNews, settings) {
-  newNews.reverse();
-
-  const chromeNotificationsEnabled =
-    settings.enableChromeNotifications !== false;
-
-  for (const newsItem of newNews) {
-    if (newsItem.isHomework) {
-      openPage(newsItem.link, (homeworkTabId, homeworkWindowId) => {
-        handleHomeworkPage(homeworkTabId, homeworkWindowId, newsItem, settings);
-      });
-    } else {
-      if (chromeNotificationsEnabled) {
-        chrome.notifications.create(
-          {
-            type: "basic",
-            iconUrl: "icon.png",
-            title: `Новина від ${newsItem.date}`,
-            message: newsItem.text,
-          },
-          (id) => {
-            notificationMapping[id] = NZ_NEWS_URL;
-          }
-        );
-      }
-      sendTelegramMessage(
-        `📚 ${newsItem.date}\n${newsItem.text}\n${NZ_NEWS_URL}`
-      );
-    }
-
-    await delay(settings.notificationDelay);
-  }
 }
 
 function handleHomeworkPage(tabId, windowId = null, newsItem, settings) {
@@ -316,7 +278,37 @@ function handleNewsPage(tabId, windowId = null) {
             );
 
             if (newNews.length > 0) {
-              sendNotificationsWithDelay(newNews, settings);
+              newNews.reverse();
+
+              for (const newsItem of newNews) {
+                if (newsItem.isHomework) {
+                  openPage(newsItem.link, (homeworkTabId, homeworkWindowId) => {
+                    handleHomeworkPage(
+                      homeworkTabId,
+                      homeworkWindowId,
+                      newsItem,
+                      settings
+                    );
+                  });
+                } else {
+                  if (settings.enableChromeNotifications !== false) {
+                    chrome.notifications.create(
+                      {
+                        type: "basic",
+                        iconUrl: "icon.png",
+                        title: `Новина від ${newsItem.date}`,
+                        message: newsItem.text,
+                      },
+                      (id) => {
+                        notificationMapping[id] = NZ_NEWS_URL;
+                      }
+                    );
+                  }
+                  sendTelegramMessage(
+                    `📚 ${newsItem.date}\n${newsItem.text}\n${NZ_NEWS_URL}`
+                  );
+                }
+              }
 
               chrome.storage.local.set({ [SAVED_NEWS_KEY]: currentNews });
             }

@@ -6,7 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
     "enableChromeNotifications"
   );
   const checkInterval = document.getElementById("checkInterval");
-  const notificationDelay = document.getElementById("notificationDelay");
   const saveButton = document.getElementById("save");
 
   chrome.storage.local.get(
@@ -16,7 +15,6 @@ document.addEventListener("DOMContentLoaded", () => {
       "telegramChatId",
       "enableChromeNotifications",
       "checkInterval",
-      "notificationDelay",
     ],
     (data) => {
       enableTelegram.checked = data.enableTelegram || false;
@@ -25,7 +23,6 @@ document.addEventListener("DOMContentLoaded", () => {
       enableChromeNotifications.checked =
         data.enableChromeNotifications || true;
       checkInterval.value = data.checkInterval || 10;
-      notificationDelay.value = data.notificationDelay || 500;
     }
   );
 
@@ -37,7 +34,6 @@ document.addEventListener("DOMContentLoaded", () => {
         telegramChatId: telegramChatId.value,
         enableChromeNotifications: enableChromeNotifications.checked,
         checkInterval: parseInt(checkInterval.value, 10),
-        notificationDelay: parseInt(notificationDelay.value, 10),
       },
       () => {
         const toast = document.getElementById("toast");
