@@ -117,7 +117,7 @@ async function sendNotificationsWithDelay(newNews, settings) {
   for (const newsItem of newNews) {
     if (newsItem.isHomework) {
       openPage(newsItem.link, (homeworkTabId, homeworkWindowId) => {
-        handleHomeworkPage(homeworkTabId, homeworkWindowId, newsItem);
+        handleHomeworkPage(homeworkTabId, homeworkWindowId, newsItem, settings);
       });
     } else {
       if (chromeNotificationsEnabled) {
@@ -142,7 +142,7 @@ async function sendNotificationsWithDelay(newNews, settings) {
   }
 }
 
-function handleHomeworkPage(tabId, windowId = null, newsItem) {
+function handleHomeworkPage(tabId, windowId = null, newsItem, settings) {
   chrome.scripting.executeScript(
     {
       target: { tabId: tabId },
@@ -173,14 +173,22 @@ function handleHomeworkPage(tabId, windowId = null, newsItem) {
           homeworkDetails.taskContent = "(ДЗ у прикріпленому файлі)";
         }
 
-        chrome.notifications.create({
-          type: "basic",
-          iconUrl: "icon.png",
-          title: `📖 ${newsItem.date}\nНове завдання: ${homeworkDetails.title}`,
-          message: homeworkDetails.taskContent,
-        });
+        const chromeNotificationsEnabled =
+          settings.enableChromeNotifications !== false;
 
-        notificationMapping[homeworkDetails.id] = homeworkDetails.link;
+        if (chromeNotificationsEnabled) {
+          chrome.notifications.create(
+            {
+              type: "basic",
+              iconUrl: "icon.png",
+              title: `📖 ${newsItem.date}`,
+              message: `Нове завдання: ${homeworkDetails.title}\n${homeworkDetails.taskContent}`,
+            },
+            (id) => {
+              notificationMapping[id] = homeworkDetails.link;
+            }
+          );
+        }
 
         sendTelegramMessage(
           `📖 ${newsItem.date}\nНове завдання: ${homeworkDetails.title}\n${homeworkDetails.taskContent}\n${homeworkDetails.link}`
@@ -221,7 +229,8 @@ function handleNewsPage(tabId, windowId = null) {
               "a[href*='hometask']"
             );
             const homeworkLink = homeworkLinkElement
-              ? window.location.origin + homeworkLinkElement.getAttribute("href")
+              ? window.location.origin +
+                homeworkLinkElement.getAttribute("href")
               : null;
 
             return {
@@ -317,19 +326,18 @@ function handleNewsPage(tabId, windowId = null) {
           });
         });
       } else {
-        chrome.storage.local.get(null, (settings) => {
-          chrome.notifications.create(
-            {
-              type: "basic",
-              iconUrl: "icon.png",
-              title: "Проблема перевірки новин на NZ.ua",
-              message: "Блок з новинами не знайдено на сторінці.",
-            },
-            (id) => {
-              notificationMapping[id] = NZ_NEWS_URL;
-            }
-          );
-        });
+        chrome.notifications.create(
+          {
+            type: "basic",
+            iconUrl: "icon.png",
+            title: "Проблема перевірки новин на NZ.ua",
+            message: "Блок з новинами не знайдено на сторінці.",
+          },
+          (id) => {
+            notificationMapping[id] = NZ_NEWS_URL;
+          }
+        );
+
         closeTabOrWindow(tabId, windowId);
       }
     }
