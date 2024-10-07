@@ -3,37 +3,47 @@ const NZ_NEWS_URL = "https://nz.ua/dashboard/news";
 
 let notificationMapping = {};
 
-function sendTelegramMessage(message, settings) {
-  if (
-    !settings.enableTelegram ||
-    !settings.telegramToken ||
-    !settings.telegramChatId
-  ) {
-    return;
-  }
-
-  const TELEGRAM_API_URL = `https://api.telegram.org/bot${settings.telegramToken}/sendMessage`;
-
-  fetch(TELEGRAM_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      chat_id: settings.telegramChatId,
-      text: message,
-    }),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      if (!data.ok) {
+function sendTelegramMessage(message) {
+  chrome.storage.local.get(
+    ["enableTelegram", "telegramToken", "telegramChatId"],
+    (settings) => {
+      if (
+        !settings.enableTelegram ||
+        !settings.telegramToken ||
+        !settings.telegramChatId
+      ) {
         console.error(
-          "Помилка надсилання повідомлення в Telegram:",
-          data.description
+          "Налаштування для Telegram неповні або відправка не дозволена"
         );
+        return;
       }
-    })
-    .catch((error) => console.error("Помилка при виконанні запиту:", error));
+
+      const TELEGRAM_API_URL = `https://api.telegram.org/bot${settings.telegramToken}/sendMessage`;
+
+      fetch(TELEGRAM_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: settings.telegramChatId,
+          text: message,
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (!data.ok) {
+            console.error(
+              "Помилка надсилання повідомлення в Telegram:",
+              data.description
+            );
+          }
+        })
+        .catch((error) =>
+          console.error("Помилка при виконанні запиту:", error)
+        );
+    }
+  );
 }
 
 function closeTabOrWindow(tabId, windowId) {
@@ -105,26 +115,81 @@ async function sendNotificationsWithDelay(newNews, settings) {
     settings.enableChromeNotifications !== false;
 
   for (const newsItem of newNews) {
-    if (chromeNotificationsEnabled) {
-      chrome.notifications.create(
-        {
-          type: "basic",
-          iconUrl: "icon.png",
-          title: `Новина від ${newsItem.date}`,
-          message: newsItem.text,
-        },
-        (id) => {
-          notificationMapping[id] = NZ_NEWS_URL;
-        }
+    if (newsItem.isHomework) {
+      openPage(newsItem.link, (homeworkTabId, homeworkWindowId) => {
+        handleHomeworkPage(homeworkTabId, homeworkWindowId, newsItem);
+      });
+    } else {
+      if (chromeNotificationsEnabled) {
+        chrome.notifications.create(
+          {
+            type: "basic",
+            iconUrl: "icon.png",
+            title: `Новина від ${newsItem.date}`,
+            message: newsItem.text,
+          },
+          (id) => {
+            notificationMapping[id] = NZ_NEWS_URL;
+          }
+        );
+      }
+      sendTelegramMessage(
+        `📚 ${newsItem.date}\n${newsItem.text}\n${NZ_NEWS_URL}`
       );
     }
-    sendTelegramMessage(
-      `📚 ${newsItem.date}\n${newsItem.text}\n${NZ_NEWS_URL}`,
-      settings
-    );
 
     await delay(settings.notificationDelay);
   }
+}
+
+function handleHomeworkPage(tabId, windowId = null, newsItem) {
+  chrome.scripting.executeScript(
+    {
+      target: { tabId: tabId },
+      function: () => {
+        try {
+          const title =
+            document.querySelector(".hometask__title")?.innerText ||
+            "Без заголовку";
+          const taskContent =
+            document.querySelector(".hometask-answer-content")?.innerText || "";
+          const attachment = document
+            .querySelector(".hometask-attachments a")
+            ?.getAttribute("href");
+
+          const link = window.location.href;
+
+          return { title, taskContent, attachment, link };
+        } catch (error) {
+          return { error: "fetch_error" };
+        }
+      },
+    },
+    (results) => {
+      const homeworkDetails = results[0].result;
+
+      if (homeworkDetails) {
+        if (!homeworkDetails.taskContent && homeworkDetails.attachment) {
+          homeworkDetails.taskContent = "(ДЗ у прикріпленому файлі)";
+        }
+
+        chrome.notifications.create({
+          type: "basic",
+          iconUrl: "icon.png",
+          title: `📖 ${newsItem.date}\nНове завдання: ${homeworkDetails.title}`,
+          message: homeworkDetails.taskContent,
+        });
+
+        notificationMapping[homeworkDetails.id] = homeworkDetails.link;
+
+        sendTelegramMessage(
+          `📖 ${newsItem.date}\nНове завдання: ${homeworkDetails.title}\n${homeworkDetails.taskContent}\n${homeworkDetails.link}`
+        );
+      }
+
+      closeTabOrWindow(tabId, windowId);
+    }
+  );
 }
 
 function handleNewsPage(tabId, windowId = null) {
@@ -147,14 +212,26 @@ function handleNewsPage(tabId, windowId = null) {
             return { error: "no_news_block" };
           }
 
-          return Array.from(newsItems).map((item) => ({
-            id: item.getAttribute("data-key"),
-            text:
-              item.querySelector(".news-page__desc")?.innerText || "Без опису",
-            date:
-              item.querySelector(".news-page__date")?.innerText || "Без дати",
-            link: item.querySelector("a")?.getAttribute("href") || "#",
-          }));
+          return Array.from(newsItems).map((item) => {
+            const desc =
+              item.querySelector(".news-page__desc")?.innerText || "Без опису";
+            const date =
+              item.querySelector(".news-page__date")?.innerText || "Без дати";
+            const homeworkLinkElement = item.querySelector(
+              "a[href*='hometask']"
+            );
+            const homeworkLink = homeworkLinkElement
+              ? window.location.origin + homeworkLinkElement.getAttribute("href")
+              : null;
+
+            return {
+              id: item.getAttribute("data-key"),
+              text: desc,
+              date: date,
+              link: homeworkLink || "#",
+              isHomework: !!homeworkLink,
+            };
+          });
         } catch (error) {
           return { error: "fetch_error" };
         }
