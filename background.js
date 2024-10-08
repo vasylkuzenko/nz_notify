@@ -1,5 +1,7 @@
 const SAVED_NEWS_KEY = "savedNZNews";
+const DIARY_GRADES_KEY = "diaryGrades";
 const NZ_NEWS_URL = "https://nz.ua/dashboard/news";
+const NZ_DIARY_URL = "https://nz.ua/schedule/diary";
 
 let notificationMapping = {};
 
@@ -96,6 +98,176 @@ function openWindow(url, handler) {
         if (activeTab.id === tabIdUpdated && changeInfo.status === "complete") {
           chrome.tabs.onUpdated.removeListener(listener);
           handler(activeTab.id, newWindow.id);
+        }
+      });
+    }
+  );
+}
+
+function genDiaryLink(dateString) {
+  const months = {
+    січня: "01",
+    лютого: "02",
+    березня: "03",
+    квітня: "04",
+    травня: "05",
+    червня: "06",
+    липня: "07",
+    серпня: "08",
+    вересня: "09",
+    жовтня: "10",
+    листопада: "11",
+    грудня: "12",
+  };
+
+  const [, day, month] = dateString.split(" ");
+
+  const year = new Date().getFullYear();
+
+  const monthNumber = months[month];
+
+  const formattedDate = `${year}-${monthNumber}-${day.padStart(2, "0")}`;
+
+  const link = `${NZ_DIARY_URL}?start_date=${formattedDate}`;
+
+  return link;
+}
+
+function parseDiaryPage(tabId, savedGrades = [], callback) {
+  chrome.scripting.executeScript(
+    {
+      target: { tabId: tabId },
+      function: () => {
+        try {
+          const diaryEntries = [];
+          const diaryItems = document.querySelectorAll(".diary-item");
+
+          diaryItems.forEach((item) => {
+            const date =
+              item.querySelector(".diary-item__title")?.innerText || null;
+            const lessons = Array.from(item.querySelectorAll(".diary-box"));
+
+            lessons.forEach((lesson, index) => {
+              const subject =
+                lesson.querySelector(".diary-item__label")?.innerText || null;
+              const lessonTopic =
+                lesson.querySelector(".diary-lesson-text p")?.innerText || null;
+
+              const gradeElement = lesson.querySelector(".diary-add-green");
+              const grade = gradeElement?.innerText?.trim() || null;
+
+              const commentElement = lesson.querySelector(
+                ".diary-add .tooltiptext"
+              );
+              const comment = commentElement
+                ? commentElement.innerHTML?.trim() || null
+                : null;
+
+              const lessonId = `${date}-${index + 1}`;
+
+              if (grade) {
+                diaryEntries.push({
+                  id: lessonId,
+                  date,
+                  subject,
+                  lessonTopic,
+                  grade,
+                  comment,
+                });
+              }
+            });
+          });
+
+          return diaryEntries;
+        } catch (error) {
+          return { error: "fetch_error" };
+        }
+      },
+    },
+    (results) => {
+      if (chrome.runtime.lastError || results[0]?.result?.error) {
+        console.error(
+          "Помилка при обробці сторінки щоденника:",
+          chrome.runtime.lastError || results[0]?.result?.error
+        );
+        callback([]);
+        return;
+      }
+
+      const diaryEntries = results[0].result;
+
+      const newEntries = diaryEntries.filter(
+        (entry) => !savedGrades.some((savedEntry) => savedEntry.id === entry.id)
+      );
+
+      callback(newEntries);
+    }
+  );
+}
+
+function collectDiaryData(startUrl, weeks = 4) {
+  chrome.storage.local.get([DIARY_GRADES_KEY], (data) => {
+    let savedGrades = data[DIARY_GRADES_KEY] || [];
+    let pagesToProcess = weeks;
+    let newGrades = [];
+
+    function processPage(tabId, windowId) {
+      parseDiaryPage(tabId, savedGrades, (entries) => {
+        newGrades.push(...entries);
+
+        if (--pagesToProcess > 0) {
+          navigateToPreviousWeek(tabId, () => processPage(tabId, windowId));
+        } else {
+          chrome.storage.local.set(
+            { [DIARY_GRADES_KEY]: [...savedGrades, ...newGrades] },
+            () => {
+              newGrades.reverse();
+              newGrades.forEach((grade) => {
+                let message = `Нова оцінка за ${grade.date}\n📘${
+                  grade.subject
+                }\n [ ${grade.grade} ] ${grade.comment || ""}\n${
+                  grade.lessonTopic
+                }\n${genDiaryLink(grade.date)}`;
+
+                sendTelegramMessage(message);
+
+                //todo check settings
+                chrome.notifications.create({
+                  type: "basic",
+                  iconUrl: "icon.png",
+                  title: `Нова оцінка з предмету ${grade.subject}`,
+                  message: `за ${grade.date} Оцінка: ${grade.grade}: ${
+                    grade.comment ? "\nКоментар : " + grade.comment : ""
+                  }`,
+                });
+              });
+            }
+          );
+          closeTabOrWindow(tabId, windowId);
+        }
+      });
+    }
+
+    openPage(startUrl, processPage);
+  });
+}
+
+function navigateToPreviousWeek(tabId, callback) {
+  chrome.scripting.executeScript(
+    {
+      target: { tabId: tabId },
+      function: () => {
+        document.querySelector(".diary-link-box .pnl-prev").click();
+      },
+    },
+    () => {
+      chrome.tabs.onUpdated.addListener(function listener(
+        tabIdUpdated,
+        changeInfo
+      ) {
+        if (tabId === tabIdUpdated && changeInfo.status === "complete") {
+          chrome.tabs.onUpdated.removeListener(listener);
+          callback(tabId);
         }
       });
     }
@@ -278,6 +450,9 @@ function handleNewsPage(tabId, windowId = null) {
             );
 
             if (newNews.length > 0) {
+              //якщо є новини - парсимо оцінки
+              collectDiaryData(NZ_DIARY_URL, 4);
+
               newNews.reverse();
 
               for (const newsItem of newNews) {

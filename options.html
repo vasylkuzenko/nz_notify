@@ -132,6 +132,19 @@
 
     <div class="container">
       <label>
+        Інтервал перевірки (хвилини):
+        <input
+          type="number"
+          id="checkInterval"
+          placeholder="Введіть інтервал перевірки"
+          min="1"
+        />
+      </label>
+      <label>
+        <input type="checkbox" id="enableChromeNotifications" />
+        Увімкнути сповіщення Chrome
+      </label>
+      <label>
         <input type="checkbox" id="enableTelegram" />
         Увімкнути сповіщення Telegram
       </label>
@@ -151,21 +164,6 @@
           type="text"
           id="telegramChatId"
           placeholder="Введіть Telegram Chat ID"
-        />
-      </label>
-
-      <label>
-        <input type="checkbox" id="enableChromeNotifications" />
-        Увімкнути сповіщення Chrome
-      </label>
-
-      <label>
-        Інтервал перевірки (хвилини):
-        <input
-          type="number"
-          id="checkInterval"
-          placeholder="Введіть інтервал перевірки"
-          min="1"
         />
       </label>
 
