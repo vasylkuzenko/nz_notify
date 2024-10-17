@@ -1,5 +1,5 @@
-const SAVED_NEWS_KEY = "savedNZNews";
-const DIARY_GRADES_KEY = "diaryGrades";
+const SAVED_NEWS_KEY = "savedNZNewsv9";
+const DIARY_GRADES_KEY = "diaryGradesv9";
 const NZ_NEWS_URL = "https://nz.ua/dashboard/news";
 const NZ_DIARY_URL = "https://nz.ua/schedule/diary";
 
@@ -57,8 +57,10 @@ function closeTabOrWindow(tabId, windowId) {
 }
 
 function openPage(url, handler) {
-  chrome.windows.getCurrent({}, (window) => {
-    if (window.state === "fullscreen") {
+  chrome.windows.getAll({ populate: true }, (windows) => {
+    const isAnyFullscreen = windows.some((win) => win.state === "fullscreen");
+
+    if (isAnyFullscreen) {
       openTab(url, handler);
     } else {
       openWindow(url, handler);
