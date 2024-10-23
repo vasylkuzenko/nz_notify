@@ -5,6 +5,9 @@ const NZ_DIARY_URL = "https://nz.ua/schedule/diary";
 
 let notificationMapping = {};
 
+const messageQueue = [];
+let isSending = false;
+
 function sendTelegramMessage(message) {
   chrome.storage.local.get(
     ["enableTelegram", "telegramToken", "telegramChatId"],
@@ -20,32 +23,51 @@ function sendTelegramMessage(message) {
         return;
       }
 
-      const TELEGRAM_API_URL = `https://api.telegram.org/bot${settings.telegramToken}/sendMessage`;
+      messageQueue.push({ message, settings });
 
-      fetch(TELEGRAM_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          chat_id: settings.telegramChatId,
-          text: message,
-        }),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (!data.ok) {
-            console.error(
-              "Помилка надсилання повідомлення в Telegram:",
-              data.description
-            );
-          }
-        })
-        .catch((error) =>
-          console.error("Помилка при виконанні запиту:", error)
-        );
+      if (!isSending) {
+        processTelegramQueue();
+      }
     }
   );
+}
+
+function processTelegramQueue() {
+  if (messageQueue.length === 0) {
+    isSending = false;
+    return;
+  }
+
+  isSending = true;
+  const { message, settings } = messageQueue.shift();
+
+  const TELEGRAM_API_URL = `https://api.telegram.org/bot${settings.telegramToken}/sendMessage`;
+
+  fetch(TELEGRAM_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      chat_id: settings.telegramChatId,
+      text: message,
+    }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      if (!data.ok) {
+        console.error(
+          "Помилка надсилання повідомлення в Telegram:",
+          data.description
+        );
+      }
+    })
+    .catch((error) => console.error("Помилка при виконанні запиту:", error))
+    .finally(() => {
+      setTimeout(() => {
+        processTelegramQueue();
+      }, 1000);
+    });
 }
 
 function closeTabOrWindow(tabId, windowId) {
