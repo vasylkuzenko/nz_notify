@@ -1,5 +1,5 @@
-const SAVED_NEWS_KEY = "savedNZNewsv9";
-const DIARY_GRADES_KEY = "diaryGradesv9";
+const SAVED_NEWS_KEY = "savedNZNews";
+const DIARY_GRADES_KEY = "diaryGrades";
 const NZ_NEWS_URL = "https://nz.ua/dashboard/news";
 const NZ_DIARY_URL = "https://nz.ua/schedule/diary";
 
@@ -141,12 +141,44 @@ function parseDiaryPage(tabId, savedGrades = [], callback) {
       target: { tabId: tabId },
       function: () => {
         try {
+          function extractDate(dateString) {
+            const months = [
+              "січня",
+              "лютого",
+              "березня",
+              "квітня",
+              "травня",
+              "червня",
+              "липня",
+              "серпня",
+              "вересня",
+              "жовтня",
+              "листопада",
+              "грудня",
+            ];
+
+            const dateRegex = new RegExp(
+              `\\d{1,2}\\s+(${months.join("|")})`,
+              "i"
+            );
+
+            const match = dateString.match(dateRegex);
+
+            if (match) {
+              return match[0];
+            } else {
+              return null;
+            }
+          }
+
           const diaryEntries = [];
           const diaryItems = document.querySelectorAll(".diary-item");
 
           diaryItems.forEach((item) => {
             const date =
-              item.querySelector(".diary-item__title")?.innerText || null;
+              extractDate(
+                item.querySelector(".diary-item__title")?.innerText
+              ) || null;
             const lessons = Array.from(item.querySelectorAll(".diary-box"));
 
             lessons.forEach((lesson, index) => {
