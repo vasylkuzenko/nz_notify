@@ -144,7 +144,7 @@ function genDiaryLink(dateString) {
     грудня: "12",
   };
 
-  const [, day, month] = dateString.split(" ");
+  const [day, month] = dateString.split(" ");
 
   const year = new Date().getFullYear();
 
@@ -261,7 +261,7 @@ function parseDiaryPage(tabId, savedGrades = [], callback) {
   );
 }
 
-function collectDiaryData(startUrl, weeks = 4) {
+function collectDiaryData(startUrl, weeks = 6) {
   chrome.storage.local.get([DIARY_GRADES_KEY], (data) => {
     let savedGrades = data[DIARY_GRADES_KEY] || [];
     let pagesToProcess = weeks;
