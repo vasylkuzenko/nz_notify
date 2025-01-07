@@ -467,17 +467,17 @@ function handleNewsPage(tabId, windowId = null) {
           }
 
           if (response.error === "no_news_block") {
-            chrome.notifications.create(
-              {
-                type: "basic",
-                iconUrl: "icon.png",
-                title: "Проблема перевірки новин на NZ.ua",
-                message: "Блок з новинами не знайдено на сторінці.",
-              },
-              (id) => {
-                notificationMapping[id] = NZ_NEWS_URL;
-              }
-            );
+            // chrome.notifications.create(
+            //   {
+            //     type: "basic",
+            //     iconUrl: "icon.png",
+            //     title: "Проблема перевірки новин на NZ.ua",
+            //     message: "Блок з новинами не знайдено на сторінці.",
+            //   },
+            //   (id) => {
+            //     notificationMapping[id] = NZ_NEWS_URL;
+            //   }
+            // );
 
             closeTabOrWindow(tabId, windowId);
             return;
@@ -507,7 +507,7 @@ function handleNewsPage(tabId, windowId = null) {
 
             if (newNews.length > 0) {
               //якщо є новини - парсимо оцінки
-              collectDiaryData(NZ_DIARY_URL, 4);
+              collectDiaryData(NZ_DIARY_URL, 8);
 
               newNews.reverse();
 
@@ -547,17 +547,17 @@ function handleNewsPage(tabId, windowId = null) {
           });
         });
       } else {
-        chrome.notifications.create(
-          {
-            type: "basic",
-            iconUrl: "icon.png",
-            title: "Проблема перевірки новин на NZ.ua",
-            message: "Блок з новинами не знайдено на сторінці.",
-          },
-          (id) => {
-            notificationMapping[id] = NZ_NEWS_URL;
-          }
-        );
+        // chrome.notifications.create(
+        //   {
+        //     type: "basic",
+        //     iconUrl: "icon.png",
+        //     title: "Проблема перевірки новин на NZ.ua",
+        //     message: "Блок з новинами не знайдено на сторінці.",
+        //   },
+        //   (id) => {
+        //     notificationMapping[id] = NZ_NEWS_URL;
+        //   }
+        // );
 
         closeTabOrWindow(tabId, windowId);
       }
