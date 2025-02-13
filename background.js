@@ -507,9 +507,11 @@ function handleNewsPage(tabId, windowId = null) {
 
             if (newNews.length > 0) {
               //якщо є новини - парсимо оцінки
-              collectDiaryData(NZ_DIARY_URL, 8);
+              collectDiaryData(NZ_DIARY_URL, 4);
 
               newNews.reverse();
+
+       
 
               for (const newsItem of newNews) {
                 if (newsItem.isHomework) {
