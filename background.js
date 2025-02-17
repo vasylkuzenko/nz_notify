@@ -82,11 +82,11 @@ function openPage(url, handler) {
   chrome.windows.getAll({ populate: true }, (windows) => {
     const isAnyFullscreen = windows.some((win) => win.state === "fullscreen");
 
-    if (isAnyFullscreen) {
+    // if (isAnyFullscreen) {
       openTab(url, handler);
-    } else {
-      openWindow(url, handler);
-    }
+    // } else {
+    //   openWindow(url, handler);
+    // }
   });
 }
 
@@ -104,29 +104,29 @@ function openTab(url, handler) {
   });
 }
 
-function openWindow(url, handler) {
-  chrome.windows.create(
-    {
-      url: url,
-      type: "popup",
-      focused: false,
-      width: 200,
-      height: 150,
-    },
-    (newWindow) => {
-      const activeTab = newWindow.tabs[0];
-      chrome.tabs.onUpdated.addListener(function listener(
-        tabIdUpdated,
-        changeInfo
-      ) {
-        if (activeTab.id === tabIdUpdated && changeInfo.status === "complete") {
-          chrome.tabs.onUpdated.removeListener(listener);
-          handler(activeTab.id, newWindow.id);
-        }
-      });
-    }
-  );
-}
+// function openWindow(url, handler) {
+//   chrome.windows.create(
+//     {
+//       url: url,
+//       type: "popup",
+//       focused: false,
+//       width: 200,
+//       height: 150,
+//     },
+//     (newWindow) => {
+//       const activeTab = newWindow.tabs[0];
+//       chrome.tabs.onUpdated.addListener(function listener(
+//         tabIdUpdated,
+//         changeInfo
+//       ) {
+//         if (activeTab.id === tabIdUpdated && changeInfo.status === "complete") {
+//           chrome.tabs.onUpdated.removeListener(listener);
+//           handler(activeTab.id, newWindow.id);
+//         }
+//       });
+//     }
+//   );
+// }
 
 function genDiaryLink(dateString) {
   const months = {
